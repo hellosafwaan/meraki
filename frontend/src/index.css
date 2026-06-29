@@ -1,0 +1,26 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { margin: 0; padding: 0; height: 100%; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 10px; border: 2px solid #0f1117; }
+::-webkit-scrollbar-track { background: transparent; }
+
+select { appearance: none; -webkit-appearance: none; }
+select option { background: #151a24; color: #e5e7eb; }
+input::placeholder { color: #5b6478; }
+
+@keyframes liveBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes badgePulse {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rowIn {
+  from { background: rgba(4,159,217,0.10); }
+  to   { background: transparent; }
+}
