@@ -10,9 +10,32 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_29_114112) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_29_114445) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
+
+  create_table "configs", force: :cascade do |t|
+    t.bigint "device_id", null: false
+    t.bigint "pushed_by_id", null: false
+    t.jsonb "config_data", default: {}, null: false
+    t.integer "version", null: false
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["device_id"], name: "index_configs_on_device_id"
+    t.index ["pushed_by_id"], name: "index_configs_on_pushed_by_id"
+  end
+
+  create_table "device_events", force: :cascade do |t|
+    t.bigint "device_id", null: false
+    t.bigint "user_id"
+    t.string "event_type", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["device_id"], name: "index_device_events_on_device_id"
+    t.index ["user_id"], name: "index_device_events_on_user_id"
+  end
 
   create_table "devices", force: :cascade do |t|
     t.string "name"
@@ -44,4 +67,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_29_114112) do
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
+
+  add_foreign_key "configs", "devices"
+  add_foreign_key "configs", "users", column: "pushed_by_id"
+  add_foreign_key "device_events", "devices"
+  add_foreign_key "device_events", "users"
 end
