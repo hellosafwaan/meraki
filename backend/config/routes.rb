@@ -1,6 +1,8 @@
 Rails.application.routes.draw do
   devise_for :users, skip: :all
 
+  mount ActionCable.server => "/cable"
+
   get "up" => "rails/health#show", as: :rails_health_check
 
   namespace :api do
