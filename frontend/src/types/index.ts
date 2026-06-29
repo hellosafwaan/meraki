@@ -17,3 +17,20 @@ export interface User {
   email: string
   role: UserRole
 }
+
+export interface ConfigEntry {
+  id: number
+  version: number
+  note: string | null
+  config_data: Record<string, unknown>
+  created_at: string
+  pushed_by: { email: string; role: UserRole }
+}
+
+export interface DeviceEvent {
+  id: number
+  event_type: 'status_change' | 'config_push'
+  payload: Record<string, unknown>
+  created_at: string
+  user: { email: string; role: UserRole } | null
+}

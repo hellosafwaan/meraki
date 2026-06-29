@@ -29,7 +29,10 @@ module Api
       end
 
       def config_params
-        params.require(:config).permit(:note, config_data: {})
+        permitted = params.require(:config).permit(:note)
+        raw = params.dig(:config, :config_data)
+        permitted[:config_data] = raw.respond_to?(:to_unsafe_h) ? raw.to_unsafe_h : raw
+        permitted
       end
     end
   end

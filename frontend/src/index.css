@@ -24,3 +24,8 @@ input::placeholder { color: #5b6478; }
   from { background: rgba(4,159,217,0.10); }
   to   { background: transparent; }
 }
+
+@keyframes rowExpand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
