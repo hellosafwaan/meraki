@@ -2,6 +2,7 @@ module Api
   module V1
     class DevicesController < ApplicationController
       before_action :set_device, only: [:show, :update, :destroy]
+      before_action :require_admin!, only: [:create, :update, :destroy]
 
       def index
         devices = Device.all

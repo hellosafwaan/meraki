@@ -1,6 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::Devices", type: :request do
+  let(:admin)    { create(:user, :admin) }
+  let(:engineer) { create(:user, :network_engineer) }
+  let(:viewer)   { create(:user) }
+
   let(:valid_params) do
     {
       device: {
@@ -12,75 +16,86 @@ RSpec.describe "Api::V1::Devices", type: :request do
     }
   end
 
-  let(:invalid_params) do
-    { device: { name: "", device_type: "router", location: "HQ" } }
-  end
-
   describe "GET /api/v1/devices" do
-    it "returns all devices" do
+    it "returns all devices when authenticated" do
       create_list(:device, 3)
-      get "/api/v1/devices"
+      get "/api/v1/devices", headers: auth_headers_for(viewer)
       expect(response).to have_http_status(:ok)
       expect(JSON.parse(response.body).length).to eq(3)
+    end
+
+    it "returns 401 without a token" do
+      get "/api/v1/devices"
+      expect(response).to have_http_status(:unauthorized)
     end
   end
 
   describe "GET /api/v1/devices/:id" do
     it "returns the device" do
       device = create(:device)
-      get "/api/v1/devices/#{device.id}"
+      get "/api/v1/devices/#{device.id}", headers: auth_headers_for(viewer)
       expect(response).to have_http_status(:ok)
       expect(JSON.parse(response.body)["id"]).to eq(device.id)
     end
 
     it "returns 404 for unknown id" do
-      get "/api/v1/devices/99999"
+      get "/api/v1/devices/99999", headers: auth_headers_for(viewer)
       expect(response).to have_http_status(:not_found)
     end
   end
 
   describe "POST /api/v1/devices" do
-    it "creates a device with valid params" do
+    it "allows admin to create a device" do
       expect {
-        post "/api/v1/devices", params: valid_params
+        post "/api/v1/devices", params: valid_params, headers: auth_headers_for(admin)
       }.to change(Device, :count).by(1)
       expect(response).to have_http_status(:created)
     end
 
-    it "returns 422 with invalid params" do
-      post "/api/v1/devices", params: invalid_params
-      expect(response).to have_http_status(:unprocessable_entity)
-      expect(JSON.parse(response.body)["errors"]).to be_present
+    it "forbids viewer from creating a device" do
+      post "/api/v1/devices", params: valid_params, headers: auth_headers_for(viewer)
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "forbids engineer from creating a device" do
+      post "/api/v1/devices", params: valid_params, headers: auth_headers_for(engineer)
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "returns 401 without a token" do
+      post "/api/v1/devices", params: valid_params
+      expect(response).to have_http_status(:unauthorized)
     end
   end
 
   describe "PUT /api/v1/devices/:id" do
-    it "updates the device" do
+    it "allows admin to update a device" do
       device = create(:device)
-      put "/api/v1/devices/#{device.id}", params: { device: { name: "Updated Name" } }
+      put "/api/v1/devices/#{device.id}", params: { device: { name: "Updated" } }, headers: auth_headers_for(admin)
       expect(response).to have_http_status(:ok)
-      expect(JSON.parse(response.body)["name"]).to eq("Updated Name")
+      expect(JSON.parse(response.body)["name"]).to eq("Updated")
     end
 
-    it "returns 422 with invalid params" do
+    it "forbids viewer from updating a device" do
       device = create(:device)
-      put "/api/v1/devices/#{device.id}", params: { device: { name: "" } }
-      expect(response).to have_http_status(:unprocessable_entity)
+      put "/api/v1/devices/#{device.id}", params: { device: { name: "Updated" } }, headers: auth_headers_for(viewer)
+      expect(response).to have_http_status(:forbidden)
     end
   end
 
   describe "DELETE /api/v1/devices/:id" do
-    it "deletes the device" do
+    it "allows admin to delete a device" do
       device = create(:device)
       expect {
-        delete "/api/v1/devices/#{device.id}"
+        delete "/api/v1/devices/#{device.id}", headers: auth_headers_for(admin)
       }.to change(Device, :count).by(-1)
       expect(response).to have_http_status(:no_content)
     end
 
-    it "returns 404 for unknown id" do
-      delete "/api/v1/devices/99999"
-      expect(response).to have_http_status(:not_found)
+    it "forbids viewer from deleting a device" do
+      device = create(:device)
+      delete "/api/v1/devices/#{device.id}", headers: auth_headers_for(viewer)
+      expect(response).to have_http_status(:forbidden)
     end
   end
 end

@@ -1,3 +1,18 @@
+puts "Seeding users..."
+
+[
+  { email: "admin@meraki.dev",    password: "password", role: "admin" },
+  { email: "engineer@meraki.dev", password: "password", role: "network_engineer" },
+  { email: "viewer@meraki.dev",   password: "password", role: "viewer" },
+].each do |attrs|
+  User.find_or_create_by!(email: attrs[:email]) do |u|
+    u.password = attrs[:password]
+    u.role = attrs[:role]
+  end
+end
+
+puts "Done. #{User.count} users seeded."
+
 puts "Seeding devices..."
 
 devices = [
