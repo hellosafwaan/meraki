@@ -1,10 +1,12 @@
 require "rails_helper"
 
 RSpec.describe DeviceStatusChannel, type: :channel do
+  let(:organization) { create(:organization) }
   let(:user)   { create(:user) }
-  let(:device) { create(:device) }
+  let(:device) { create(:device, organization: organization) }
 
   before do
+    create(:organization_membership, organization: organization, user: user)
     stub_connection current_user: user
   end
 
@@ -16,6 +18,12 @@ RSpec.describe DeviceStatusChannel, type: :channel do
 
   it "rejects subscription for an unknown device" do
     subscribe device_id: 99999
+    expect(subscription).to be_rejected
+  end
+
+  it "rejects subscription for a device in another organization" do
+    other_device = create(:device)
+    subscribe device_id: other_device.id
     expect(subscription).to be_rejected
   end
 

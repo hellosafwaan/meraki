@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
 
 const roleLabel: Record<string, string> = {
@@ -8,9 +10,21 @@ const roleLabel: Record<string, string> = {
 }
 
 export default function Sidebar() {
-  const { user, logout } = useAuth()
+  const { user, logout, currentOrg, setCurrentOrg } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
+  const [orgMenuOpen, setOrgMenuOpen] = useState(false)
+
+  const orgs = user?.organizations ?? []
+
+  const handleSelectOrg = (org: typeof orgs[number]) => {
+    setOrgMenuOpen(false)
+    if (org.id === currentOrg?.id) return
+    setCurrentOrg(org)
+    queryClient.clear()
+    navigate('/devices')
+  }
 
   const navItems = [
     {
@@ -41,14 +55,42 @@ export default function Sidebar() {
       </div>
 
       {/* Org switcher */}
-      <div style={{ padding: '14px 14px 6px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 10px', border: '1px solid #1c2230', borderRadius: 8, background: '#0f1320', cursor: 'pointer' }}>
+      <div style={{ padding: '14px 14px 6px', position: 'relative' }}>
+        <div
+          onClick={() => orgs.length > 0 && setOrgMenuOpen((o) => !o)}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 10px', border: '1px solid #1c2230', borderRadius: 8, background: '#0f1320', cursor: orgs.length > 0 ? 'pointer' : 'default' }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Acme Corp</span>
-            <span style={{ fontSize: 10.5, color: '#6b7384' }}>HQ Network</span>
+            <span style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentOrg?.name ?? 'No organization'}</span>
+            <span style={{ fontSize: 10.5, color: '#6b7384', fontFamily: "'JetBrains Mono', monospace" }}>{currentOrg?.slug ?? '—'}</span>
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7384" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6b7384" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform .2s', transform: orgMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}><path d="m6 9 6 6 6-6"/></svg>
         </div>
+
+        {orgMenuOpen && orgs.length > 0 && (
+          <div style={{ position: 'absolute', left: 14, right: 14, top: '100%', marginTop: 4, zIndex: 20, background: '#0f1320', border: '1px solid #1c2230', borderRadius: 8, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+            {orgs.map((org) => {
+              const active = org.id === currentOrg?.id
+              return (
+                <div
+                  key={org.id}
+                  onClick={() => handleSelectOrg(org)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '9px 11px', cursor: 'pointer', background: active ? 'rgba(4,159,217,0.1)' : 'transparent' }}
+                  onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = '#141925' }}
+                  onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: active ? '#049fd9' : '#e5e7eb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{org.name}</span>
+                    <span style={{ fontSize: 10, color: '#6b7384' }}>{roleLabel[org.role] ?? org.role}</span>
+                  </div>
+                  {active && (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#049fd9" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Nav */}
@@ -89,7 +131,7 @@ export default function Sidebar() {
               {user?.email ?? ''}
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, alignSelf: 'flex-start', padding: '1px 7px', borderRadius: 5, fontSize: 10, fontWeight: 600, color: '#049fd9', background: 'rgba(4,159,217,0.12)', border: '1px solid rgba(4,159,217,0.28)' }}>
-              {roleLabel[user?.role ?? ''] ?? user?.role}
+              {roleLabel[currentOrg?.role ?? ''] ?? currentOrg?.role ?? '—'}
             </span>
           </div>
           <button

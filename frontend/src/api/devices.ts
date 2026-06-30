@@ -21,6 +21,25 @@ export const fetchEvents = async (deviceId: string | number): Promise<DeviceEven
   return data
 }
 
+type DevicePayload = Pick<Device, 'name' | 'ip_address' | 'device_type' | 'location' | 'status'>
+
+export const createDevice = async (payload: DevicePayload): Promise<Device> => {
+  const { data } = await client.post('/devices', { device: payload })
+  return data
+}
+
+export const updateDevice = async (
+  id: string | number,
+  payload: Partial<DevicePayload>
+): Promise<Device> => {
+  const { data } = await client.patch(`/devices/${id}`, { device: payload })
+  return data
+}
+
+export const deleteDevice = async (id: string | number): Promise<void> => {
+  await client.delete(`/devices/${id}`)
+}
+
 export const createConfig = async (
   deviceId: string | number,
   payload: { config_data: Record<string, unknown>; note?: string }

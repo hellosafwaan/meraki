@@ -1,21 +1,30 @@
+puts "Seeding organizations..."
+
+org1 = Organization.find_or_create_by!(slug: "acme-corp") { |o| o.name = "Acme Corp" }
+org2 = Organization.find_or_create_by!(slug: "globex")    { |o| o.name = "Globex Industries" }
+
+puts "Done. #{Organization.count} organizations seeded."
+
 puts "Seeding users..."
 
-[
-  { email: "admin@meraki.dev",    password: "password", role: "admin" },
-  { email: "engineer@meraki.dev", password: "password", role: "network_engineer" },
-  { email: "viewer@meraki.dev",   password: "password", role: "viewer" },
-].each do |attrs|
-  User.find_or_create_by!(email: attrs[:email]) do |u|
-    u.password = attrs[:password]
-    u.role = attrs[:role]
-  end
-end
+admin    = User.find_or_create_by!(email: "admin@meraki.dev")    { |u| u.password = "password" }
+engineer = User.find_or_create_by!(email: "engineer@meraki.dev") { |u| u.password = "password" }
+viewer   = User.find_or_create_by!(email: "viewer@meraki.dev")   { |u| u.password = "password" }
 
 puts "Done. #{User.count} users seeded."
 
+puts "Seeding memberships..."
+
+OrganizationMembership.find_or_create_by!(organization: org1, user: admin)    { |m| m.role = "admin" }
+OrganizationMembership.find_or_create_by!(organization: org2, user: admin)    { |m| m.role = "admin" }
+OrganizationMembership.find_or_create_by!(organization: org1, user: engineer) { |m| m.role = "network_engineer" }
+OrganizationMembership.find_or_create_by!(organization: org1, user: viewer)   { |m| m.role = "viewer" }
+
+puts "Done. #{OrganizationMembership.count} memberships seeded."
+
 puts "Seeding devices..."
 
-devices = [
+[
   { name: "Core Router 01",      ip_address: "127.0.0.1",  device_type: "router",       location: "HQ - Server Room",    status: "online" },
   { name: "Core Router 02",      ip_address: "127.0.0.2",  device_type: "router",       location: "HQ - Server Room",    status: "online" },
   { name: "Distribution SW-01",  ip_address: "127.0.0.3",  device_type: "switch",       location: "HQ - Floor 1",        status: "online" },
@@ -29,14 +38,16 @@ devices = [
   { name: "FW-Perimeter-01",     ip_address: "127.0.0.11", device_type: "firewall",     location: "HQ - Server Room",    status: "online" },
   { name: "FW-Perimeter-02",     ip_address: "127.0.0.12", device_type: "firewall",     location: "Branch - NYC",        status: "online" },
   { name: "FW-Branch-SF-01",     ip_address: "127.0.0.13", device_type: "firewall",     location: "Branch - SF",         status: "offline" },
-  { name: "Edge Router 01",      ip_address: "127.0.0.14", device_type: "router",       location: "Branch - NYC",        status: "online" },
-  { name: "Edge Router 02",      ip_address: "127.0.0.15", device_type: "router",       location: "Branch - SF",         status: "degraded" },
-]
+].each do |attrs|
+  org1.devices.find_or_create_by!(ip_address: attrs[:ip_address]) { |d| d.assign_attributes(attrs) }
+end
 
-devices.each do |attrs|
-  Device.find_or_create_by!(ip_address: attrs[:ip_address]) do |d|
-    d.assign_attributes(attrs)
-  end
+[
+  { name: "Globex Router",   ip_address: "127.0.0.21", device_type: "router",       location: "Plant A",           status: "online" },
+  { name: "Globex Firewall", ip_address: "127.0.0.22", device_type: "firewall",     location: "Plant A",           status: "degraded" },
+  { name: "Globex AP-01",    ip_address: "127.0.0.23", device_type: "access_point", location: "Plant A - Floor 1", status: "online" },
+].each do |attrs|
+  org2.devices.find_or_create_by!(ip_address: attrs[:ip_address]) { |d| d.assign_attributes(attrs) }
 end
 
 puts "Done. #{Device.count} devices seeded."

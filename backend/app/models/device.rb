@@ -1,4 +1,6 @@
 class Device < ApplicationRecord
+  belongs_to :organization
+
   has_many :configs, dependent: :destroy
   has_many :device_events, dependent: :destroy
 

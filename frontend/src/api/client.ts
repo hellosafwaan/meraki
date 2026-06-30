@@ -7,6 +7,10 @@ const client = axios.create({
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+
+  const org = JSON.parse(localStorage.getItem('currentOrg') || 'null')
+  if (org?.id) config.headers['X-Organization-Id'] = String(org.id)
+
   return config
 })
 

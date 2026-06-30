@@ -10,6 +10,8 @@ Rails.application.routes.draw do
       post "auth/login",  to: "auth#login"
       delete "auth/logout", to: "auth#logout"
 
+      resources :organizations, only: [:index]
+
       resources :devices do
         resources :configs, only: [:index, :create]
         resources :device_events, only: [:index]

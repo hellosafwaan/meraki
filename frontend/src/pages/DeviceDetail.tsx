@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createConsumer } from '@rails/actioncable'
 import Sidebar from '../components/Sidebar'
 import StatusBadge from '../components/StatusBadge'
-import { fetchDevice, fetchConfigs, fetchEvents } from '../api/devices'
+import { fetchDevice, fetchConfigs, fetchEvents, deleteDevice } from '../api/devices'
+import { useAuth } from '../context/AuthContext'
 import type { ConfigEntry, DeviceEvent, DeviceStatus, Device } from '../types'
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
@@ -412,26 +413,44 @@ export default function DeviceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { currentOrg, currentOrgId } = useAuth()
   const [tab, setTab] = useState<TabId>('config')
   const [, setTick] = useState(0)
 
+  const isAdmin = currentOrg?.role === 'admin'
+  const canPushConfig = currentOrg?.role === 'admin' || currentOrg?.role === 'network_engineer'
+
   const { data: device, isLoading, isError } = useQuery({
-    queryKey: ['device', id],
+    queryKey: ['device', currentOrgId, id],
     queryFn: () => fetchDevice(id!),
     enabled: !!id,
   })
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs', id],
+    queryKey: ['configs', currentOrgId, id],
     queryFn: () => fetchConfigs(id!),
     enabled: !!id,
   })
 
   const { data: events = [] } = useQuery({
-    queryKey: ['events', id],
+    queryKey: ['events', currentOrgId, id],
     queryFn: () => fetchEvents(id!),
     enabled: !!id,
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteDevice(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices', currentOrgId] })
+      navigate('/devices')
+    },
+  })
+
+  const handleDelete = () => {
+    if (window.confirm('Delete this device? This cannot be undone.')) {
+      deleteMutation.mutate()
+    }
+  }
 
   // Relative time ticker
   useEffect(() => {
@@ -441,10 +460,10 @@ export default function DeviceDetail() {
 
   // ActionCable real-time status
   const handleBroadcast = useCallback((data: { id: number; status: DeviceStatus }) => {
-    queryClient.setQueryData<Device>(['device', id], (old) =>
+    queryClient.setQueryData<Device>(['device', currentOrgId, id], (old) =>
       old ? { ...old, status: data.status, updated_at: new Date().toISOString() } : old
     )
-  }, [queryClient, id])
+  }, [queryClient, currentOrgId, id])
 
   useEffect(() => {
     if (!device?.id) return
@@ -539,15 +558,42 @@ export default function DeviceDetail() {
                 <span style={{ textTransform: 'capitalize' }}>{TYPE_LABEL[device.device_type]}</span>
               </div>
             </div>
-            <button
-              onClick={() => navigate(`/devices/${device.id}/configs/new`)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 15px', borderRadius: 8, background: '#049fd9', color: '#06121a', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#05b0ef')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#049fd9')}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-              Push Config
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isAdmin && (
+                <>
+                  <button
+                    onClick={() => navigate(`/devices/${device.id}/edit`)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 8, background: 'transparent', color: '#8b93a7', fontSize: 13, fontWeight: 500, border: '1px solid #1c2230', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#e5e7eb'; e.currentTarget.style.borderColor = '#2a3142' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#8b93a7'; e.currentTarget.style.borderColor = '#1c2230' }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleteMutation.isPending}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 8, background: 'transparent', color: '#8b93a7', fontSize: 13, fontWeight: 500, border: '1px solid #1c2230', cursor: deleteMutation.isPending ? 'not-allowed' : 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#8b93a7'; e.currentTarget.style.borderColor = '#1c2230' }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                  </button>
+                </>
+              )}
+              {canPushConfig && (
+                <button
+                  onClick={() => navigate(`/devices/${device.id}/configs/new`)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 15px', borderRadius: 8, background: '#049fd9', color: '#06121a', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#05b0ef')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#049fd9')}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                  Push Config
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Tab bar */}

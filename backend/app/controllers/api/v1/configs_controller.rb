@@ -5,8 +5,12 @@ module Api
       before_action :require_engineer_or_admin!, only: [:create]
 
       def index
-        configs = @device.configs.order(version: :desc)
-        render json: configs.as_json(include: { pushed_by: { only: [:email, :role] } })
+        configs = @device.configs.includes(:pushed_by).order(version: :desc)
+        render json: configs.map { |config|
+          config.as_json(include: { pushed_by: { only: [:email] } }).tap do |json|
+            json["pushed_by"]["role"] = org_role_for(config.pushed_by)
+          end
+        }
       end
 
       def create
@@ -23,7 +27,7 @@ module Api
       private
 
       def set_device
-        @device = Device.find(params[:device_id])
+        @device = @current_org.devices.find(params[:device_id])
       rescue ActiveRecord::RecordNotFound
         render json: { error: "Device not found" }, status: :not_found
       end

@@ -5,8 +5,7 @@ module Api
       before_action :require_admin!, only: [:create, :update, :destroy]
 
       def index
-        devices = Device.all
-        render json: devices
+        render json: @current_org.devices
       end
 
       def show
@@ -14,7 +13,7 @@ module Api
       end
 
       def create
-        device = Device.new(device_params)
+        device = @current_org.devices.build(device_params)
         if device.save
           render json: device, status: :created
         else
@@ -38,7 +37,7 @@ module Api
       private
 
       def set_device
-        @device = Device.find(params[:id])
+        @device = @current_org.devices.find(params[:id])
       rescue ActiveRecord::RecordNotFound
         render json: { error: "Device not found" }, status: :not_found
       end

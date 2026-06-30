@@ -3,7 +3,6 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable,
          :jwt_authenticatable, jwt_revocation_strategy: JwtDenylist
 
-  enum :role, { admin: "admin", network_engineer: "network_engineer", viewer: "viewer" }, validate: true
-
-  validates :role, presence: true
+  has_many :organization_memberships, dependent: :destroy
+  has_many :organizations, through: :organization_memberships
 end

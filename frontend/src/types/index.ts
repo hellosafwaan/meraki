@@ -13,9 +13,16 @@ export interface Device {
   updated_at: string
 }
 
+export interface OrgMembership {
+  id: number
+  name: string
+  slug: string
+  role: UserRole
+}
+
 export interface User {
   email: string
-  role: UserRole
+  organizations: OrgMembership[]
 }
 
 export interface ConfigEntry {

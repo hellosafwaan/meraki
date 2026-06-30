@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Sidebar from '../components/Sidebar'
 import { fetchDevice, createConfig } from '../api/devices'
+import { useAuth } from '../context/AuthContext'
 
 // ─── Field definitions per device type ──────────────────────────────────────
 
@@ -122,9 +123,10 @@ export default function ConfigEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { currentOrgId } = useAuth()
 
   const { data: device, isLoading } = useQuery({
-    queryKey: ['device', id],
+    queryKey: ['device', currentOrgId, id],
     queryFn: () => fetchDevice(id!),
     enabled: !!id,
   })
@@ -155,8 +157,8 @@ export default function ConfigEditor() {
     mutationFn: (payload: { config_data: Record<string, unknown>; note?: string }) =>
       createConfig(id!, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['configs', id] })
-      queryClient.invalidateQueries({ queryKey: ['events', id] })
+      queryClient.invalidateQueries({ queryKey: ['configs', currentOrgId, id] })
+      queryClient.invalidateQueries({ queryKey: ['events', currentOrgId, id] })
       navigate(`/devices/${id}`)
     },
   })

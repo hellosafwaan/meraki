@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar'
 import StatusBadge from '../components/StatusBadge'
 import DeviceTypeIcon from '../components/DeviceTypeIcon'
 import { fetchDevices } from '../api/devices'
+import { useAuth } from '../context/AuthContext'
 import type { Device, DeviceStatus } from '../types'
 
 function relTime(iso: string): string {
@@ -25,6 +26,7 @@ const GRID_COLS = 'minmax(170px,1.6fr) 120px 150px minmax(150px,1.4fr) 116px 110
 export default function DeviceList() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { currentOrg, currentOrgId } = useAuth()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -32,7 +34,7 @@ export default function DeviceList() {
   const [, setTick] = useState(0)
 
   const { data: devices = [] } = useQuery({
-    queryKey: ['devices'],
+    queryKey: ['devices', currentOrgId],
     queryFn: fetchDevices,
     refetchInterval: 60000,
   })
@@ -46,7 +48,7 @@ export default function DeviceList() {
   // ActionCable live updates
   const handleBroadcast = useCallback(
     (data: { id: number; status: DeviceStatus }) => {
-      queryClient.setQueryData<Device[]>(['devices'], (old = []) =>
+      queryClient.setQueryData<Device[]>(['devices', currentOrgId], (old = []) =>
         old.map((d) =>
           d.id === data.id ? { ...d, status: data.status, updated_at: new Date().toISOString() } : d
         )
@@ -102,9 +104,22 @@ export default function DeviceList() {
               Monitoring <span style={{ color: '#e5e7eb', fontWeight: 600 }}>{total}</span> devices across your network
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', border: '1px solid #1c2230', borderRadius: 8, background: '#10141d' }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'liveBlink 1.8s ease-in-out infinite' }} />
-            <span style={{ fontSize: 11.5, color: '#8b93a7', fontWeight: 500 }}>Live</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', border: '1px solid #1c2230', borderRadius: 8, background: '#10141d' }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', animation: 'liveBlink 1.8s ease-in-out infinite' }} />
+              <span style={{ fontSize: 11.5, color: '#8b93a7', fontWeight: 500 }}>Live</span>
+            </div>
+            {currentOrg?.role === 'admin' && (
+              <button
+                onClick={() => navigate('/devices/new')}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 8, background: '#049fd9', color: '#06121a', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#05b0ef')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#049fd9')}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                Add Device
+              </button>
+            )}
           </div>
         </header>
 

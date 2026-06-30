@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
 import DeviceDetail from './pages/DeviceDetail'
+import DeviceForm from './pages/DeviceForm'
 import ConfigEditor from './pages/ConfigEditor'
 import ComingSoon from './pages/ComingSoon'
 import './index.css'
@@ -23,6 +24,8 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/devices" element={<ProtectedRoute><DeviceList /></ProtectedRoute>} />
+            <Route path="/devices/new" element={<ProtectedRoute><DeviceForm /></ProtectedRoute>} />
+            <Route path="/devices/:id/edit" element={<ProtectedRoute><DeviceForm /></ProtectedRoute>} />
             <Route path="/devices/:id" element={<ProtectedRoute><DeviceDetail /></ProtectedRoute>} />
             <Route path="/devices/:id/configs/new" element={<ProtectedRoute><ConfigEditor /></ProtectedRoute>} />
             <Route path="/alerts" element={<ProtectedRoute><ComingSoon title="Alerts" description="Threshold-based alerts and notification rules for device status changes will appear here." icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M21 8c0-2.5-2-2.7-3-9-1 6.3-3 6.5-3 9 0 3.5-1.5 4-3 5h12c-1.5-1-3-1.5-3-5Z"/></svg>} /></ProtectedRoute>} />
